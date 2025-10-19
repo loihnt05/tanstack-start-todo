@@ -10,8 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TodoEditRouteImport } from './routes/todo/edit'
-import { Route as TodoCreateRouteImport } from './routes/todo/create'
+import { Route as TodoHomeRouteImport } from './routes/todo/home'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
@@ -25,14 +24,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TodoEditRoute = TodoEditRouteImport.update({
-  id: '/todo/edit',
-  path: '/todo/edit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TodoCreateRoute = TodoCreateRouteImport.update({
-  id: '/todo/create',
-  path: '/todo/create',
+const TodoHomeRoute = TodoHomeRouteImport.update({
+  id: '/todo/home',
+  path: '/todo/home',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
@@ -73,8 +67,7 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/todo/create': typeof TodoCreateRoute
-  '/todo/edit': typeof TodoEditRoute
+  '/todo/home': typeof TodoHomeRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -85,8 +78,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/todo/create': typeof TodoCreateRoute
-  '/todo/edit': typeof TodoEditRoute
+  '/todo/home': typeof TodoHomeRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -98,8 +90,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/todo/create': typeof TodoCreateRoute
-  '/todo/edit': typeof TodoEditRoute
+  '/todo/home': typeof TodoHomeRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
@@ -112,8 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/todo/create'
-    | '/todo/edit'
+    | '/todo/home'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -124,8 +114,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/todo/create'
-    | '/todo/edit'
+    | '/todo/home'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -136,8 +125,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/todo/create'
-    | '/todo/edit'
+    | '/todo/home'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
@@ -149,8 +137,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  TodoCreateRoute: typeof TodoCreateRoute
-  TodoEditRoute: typeof TodoEditRoute
+  TodoHomeRoute: typeof TodoHomeRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
   DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
@@ -169,18 +156,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/todo/edit': {
-      id: '/todo/edit'
-      path: '/todo/edit'
-      fullPath: '/todo/edit'
-      preLoaderRoute: typeof TodoEditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/todo/create': {
-      id: '/todo/create'
-      path: '/todo/create'
-      fullPath: '/todo/create'
-      preLoaderRoute: typeof TodoCreateRouteImport
+    '/todo/home': {
+      id: '/todo/home'
+      path: '/todo/home'
+      fullPath: '/todo/home'
+      preLoaderRoute: typeof TodoHomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/start/server-funcs': {
@@ -237,8 +217,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  TodoCreateRoute: TodoCreateRoute,
-  TodoEditRoute: TodoEditRoute,
+  TodoHomeRoute: TodoHomeRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
   DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,

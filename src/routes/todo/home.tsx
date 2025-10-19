@@ -31,7 +31,7 @@ import { createServerFn, useServerFn } from "@tanstack/react-start";
 import prisma from "@/lib/prisma";
 import { TodoList, todo } from "./todo-list";
 
-export const Route = createFileRoute("/todo/create")({
+export const Route = createFileRoute("/todo/home")({
   component: RouteComponent,
   loader: async () => {
     const todos = await getTodosServerFn();
@@ -41,7 +41,14 @@ export const Route = createFileRoute("/todo/create")({
 
 function RouteComponent() {
   const { todos } = Route.useLoaderData();
-  const [listTodo, setListTodo] = React.useState(todos);  
+  const [listTodo, setListTodo] = React.useState(todos);
+  const deleteTodo = useServerFn(deleteTodoServerFn);
+  
+  const handleDeleteTodo = async (id: string) => {
+    await deleteTodo({ data: { id } });
+    setListTodo((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
+    toast.success("Todo deleted successfully!");
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -51,7 +58,7 @@ function RouteComponent() {
             <TodoForm setListTodo={setListTodo} />
           </div>
           <div className="flex-1">
-            <TodoList data={listTodo} />
+            <TodoList data={listTodo} onDelete={handleDeleteTodo} />
           </div>
         </div>
       </div>
@@ -72,6 +79,7 @@ const formSchema = z.object({
 const getTodosServerFn = createServerFn({ method: "GET" }).handler(async () => {
   return await prisma.todo.findMany();
 });
+
 const createTodoServerFn = createServerFn({ method: "POST" })
   .inputValidator(formSchema)
   .handler(async (request) => {
@@ -83,6 +91,15 @@ const createTodoServerFn = createServerFn({ method: "POST" })
         description,
         completed: false,
       },
+    });
+  });
+
+const deleteTodoServerFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async (request) => {
+    const { id } = request.data;
+    return await prisma.todo.delete({
+      where: { id },
     });
   });
 

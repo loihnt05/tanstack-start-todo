@@ -40,7 +40,7 @@ export type todo = {
   completed: boolean;
 };
 
-export const columns: ColumnDef<todo>[] = [
+export const createColumns = (onDelete: (id: string) => void): ColumnDef<todo>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -94,11 +94,15 @@ export const columns: ColumnDef<todo>[] = [
     cell: ({ row }) => <div>{row.getValue("description")}</div>,
   },
   {
-    accessorKey: "tool",
+    id: "tool",
     header: () => <div className="text-center">Tool</div>,
-    cell: () => {
+    cell: ({ row }) => {
       return (
-        <Button className="ml-auto w-full hover:cursor-pointer" variant="ghost">
+        <Button 
+          className="ml-auto w-full hover:cursor-pointer" 
+          variant="ghost"
+          onClick={() => onDelete(row.original.id)}
+        >
           <Trash />
         </Button>
       );
@@ -106,7 +110,7 @@ export const columns: ColumnDef<todo>[] = [
   },
 ];
 
-export function TodoList({ data }: { data: todo[] }) {
+export function TodoList({ data, onDelete }: { data: todo[]; onDelete: (id: string) => void }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -114,6 +118,8 @@ export function TodoList({ data }: { data: todo[] }) {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+
+  const columns = React.useMemo(() => createColumns(onDelete), [onDelete]);
 
   const table = useReactTable({
     data,
@@ -212,7 +218,7 @@ export function TodoList({ data }: { data: todo[] }) {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={table.getAllColumns().length}
                   className="h-24 text-center"
                 >
                   No results.
