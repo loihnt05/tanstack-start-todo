@@ -29,7 +29,7 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
 import prisma from "@/lib/prisma";
-import { TodoList } from "./todo-list";
+import { TodoList, todo } from "./todo-list";
 
 export const Route = createFileRoute("/todo/create")({
   component: RouteComponent,
@@ -41,16 +41,17 @@ export const Route = createFileRoute("/todo/create")({
 
 function RouteComponent() {
   const { todos } = Route.useLoaderData();
+  const [listTodo, setListTodo] = React.useState(todos);  
   
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="lg:w-96 flex-shrink-0">
-            <TodoForm />
+            <TodoForm setListTodo={setListTodo} />
           </div>
           <div className="flex-1">
-            <TodoList data={todos} />
+            <TodoList data={listTodo} />
           </div>
         </div>
       </div>
@@ -75,6 +76,7 @@ const createTodoServerFn = createServerFn({ method: "POST" })
   .inputValidator(formSchema)
   .handler(async (request) => {
     const { title, description } = request.data;
+    
     return await prisma.todo.create({
       data: {
         title,
@@ -84,7 +86,7 @@ const createTodoServerFn = createServerFn({ method: "POST" })
     });
   });
 
-export function TodoForm() {
+export function TodoForm({ setListTodo }: { setListTodo: React.Dispatch<React.SetStateAction<todo[]>> }) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -95,8 +97,15 @@ export function TodoForm() {
   const submitTodo = useServerFn(createTodoServerFn);
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
-    await submitTodo({ data });
-    toast.error("You submitted the following values:", {
+    const newTodo = await submitTodo({ data });
+    
+    // Update the todo list with the new todo
+    setListTodo((prevTodos) => [...prevTodos, newTodo]);
+    
+    // Reset the form
+    form.reset();
+    
+    toast.success("Todo created successfully!", {
       description: (
         <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
           <code>{JSON.stringify(data, null, 2)}</code>
