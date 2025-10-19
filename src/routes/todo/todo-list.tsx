@@ -12,7 +12,7 @@ import {
   useReactTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, Trash } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Pencil, Trash } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,11 @@ export type todo = {
   completed: boolean;
 };
 
-export const createColumns = (onDelete: (id: string) => void, onChecked: (id: string) => void): ColumnDef<todo>[] => [
+export const createColumns = (
+  onDelete: (id: string) => void,
+  onChecked: (id: string) => void,
+  onEdit: (id: string) => void
+): ColumnDef<todo>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -67,7 +71,12 @@ export const createColumns = (onDelete: (id: string) => void, onChecked: (id: st
     accessorKey: "completed",
     header: "Status",
     cell: ({ row }) => (
-      <div className="capitalize hover:cursor-pointer" onClick={() => {onChecked(row.original.id)}}>
+      <div
+        className="capitalize hover:cursor-pointer hover:underline"
+        onClick={() => {
+          onChecked(row.original.id);
+        }}
+      >
         {row.getValue("completed") ? "Done" : "Not Done"}
       </div>
     ),
@@ -98,19 +107,38 @@ export const createColumns = (onDelete: (id: string) => void, onChecked: (id: st
     header: () => <div className="text-center">Tool</div>,
     cell: ({ row }) => {
       return (
-        <Button 
-          className="ml-auto w-full hover:cursor-pointer" 
-          variant="ghost"
-          onClick={() => onDelete(row.original.id)}
-        >
-          <Trash />
-        </Button>
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            className="hover:cursor-pointer hover:bg-gray-200"
+            variant="ghost"
+            onClick={() => onDelete(row.original.id)}
+          >
+            <Trash />
+          </Button>
+          <Button
+            variant="ghost"
+            className="hover:cursor-pointer hover:bg-gray-200"
+            onClick={() => onEdit(row.original.id)}
+          >
+            <Pencil />
+          </Button>
+        </div>
       );
     },
   },
 ];
 
-export function TodoList({ data, onDelete, onChecked }: { data: todo[]; onDelete: (id: string) => void; onChecked: (id: string) => void }) {
+export function TodoList({
+  data,
+  onDelete,
+  onChecked,
+  onEdit
+}: {
+  data: todo[];
+  onDelete: (id: string) => void;
+  onChecked: (id: string) => void;
+  onEdit: (id: string) => void;
+}) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -119,7 +147,10 @@ export function TodoList({ data, onDelete, onChecked }: { data: todo[]; onDelete
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const columns = React.useMemo(() => createColumns(onDelete, onChecked), [onDelete, onChecked]);
+  const columns = React.useMemo(
+    () => createColumns(onDelete, onChecked, onEdit),
+    [onDelete, onChecked, onEdit]
+  );
 
   const table = useReactTable({
     data,

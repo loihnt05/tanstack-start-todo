@@ -42,7 +42,11 @@ export const Route = createFileRoute("/todo/home")({
 function RouteComponent() {
   const { todos } = Route.useLoaderData();
   const [listTodo, setListTodo] = React.useState(todos);
+  const [mode, setMode] = React.useState<"create" | "edit">("create");
+  const [editingTodo, setEditingTodo] = React.useState<todo | null>(null);
+
   const deleteTodo = useServerFn(deleteTodoServerFn);
+  const checkedTodo = useServerFn(checkedTodoServerFn);
   const editTodo = useServerFn(editTodoServerFn);
 
   const handleDeleteTodo = async (id: string) => {
@@ -52,23 +56,46 @@ function RouteComponent() {
   };
 
   const handleCheckedTodo = async (id: string) => {
-    await editTodo({ data: { id } });
+    await checkedTodo({ data: { id } });
     setListTodo((prevTodos) =>
       prevTodos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     );
-  }
-  
+  };
+
+  const handleEditTodo = async (id: string) => {
+    const todoData = await editTodo({ data: { id } });
+    if (todoData) {
+      setEditingTodo(todoData);
+      setMode("edit");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTodo(null);
+    setMode("create");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="lg:w-96 flex-shrink-0">
-            <TodoForm setListTodo={setListTodo} />
+            <TodoForm
+              setListTodo={setListTodo}
+              mode={mode}
+              editingTodo={editingTodo}
+              onCancelEdit={handleCancelEdit}
+            />
           </div>
           <div className="flex-1">
-            <TodoList data={listTodo} onDelete={handleDeleteTodo} onChecked={handleCheckedTodo}/>
+            <TodoList
+              data={listTodo}
+              onDelete={handleDeleteTodo}
+              onChecked={handleCheckedTodo}
+              onEdit={handleEditTodo}
+            />
           </div>
         </div>
       </div>
@@ -94,7 +121,7 @@ const createTodoServerFn = createServerFn({ method: "POST" })
   .inputValidator(formSchema)
   .handler(async (request) => {
     const { title, description } = request.data;
-    
+
     return await prisma.todo.create({
       data: {
         title,
@@ -112,7 +139,7 @@ const deleteTodoServerFn = createServerFn({ method: "POST" })
       where: { id },
     });
   });
-const editTodoServerFn = createServerFn({ method: "POST" })
+const checkedTodoServerFn = createServerFn({ method: "POST" })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async (request) => {
     const { id } = request.data;
@@ -123,7 +150,40 @@ const editTodoServerFn = createServerFn({ method: "POST" })
       data: { completed: !todo.completed },
     });
   });
-export function TodoForm({ setListTodo }: { setListTodo: React.Dispatch<React.SetStateAction<todo[]>> }) {
+
+const editTodoServerFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async (request) => {
+    const { id } = request.data;
+    return await prisma.todo.findUnique({ where: { id } });
+  });
+
+const updateTodoServerFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      title: z.string().min(5).max(32),
+      description: z.string().min(20).max(100),
+    })
+  )
+  .handler(async (request) => {
+    const { id, title, description } = request.data;
+    return await prisma.todo.update({
+      where: { id },
+      data: { title, description },
+    });
+  });
+export function TodoForm({
+  setListTodo,
+  mode,
+  editingTodo,
+  onCancelEdit,
+}: {
+  setListTodo: React.Dispatch<React.SetStateAction<todo[]>>;
+  mode: "create" | "edit";
+  editingTodo: todo | null;
+  onCancelEdit: () => void;
+}) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -132,35 +192,80 @@ export function TodoForm({ setListTodo }: { setListTodo: React.Dispatch<React.Se
     },
   });
   const submitTodo = useServerFn(createTodoServerFn);
+  const updateTodo = useServerFn(updateTodoServerFn);
+
+  // Update form values when editingTodo changes
+  React.useEffect(() => {
+    if (editingTodo && mode === "edit") {
+      form.setValue("title", editingTodo.title);
+      form.setValue("description", editingTodo.description);
+    } else {
+      form.reset();
+    }
+  }, [editingTodo, mode, form]);
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
-    const newTodo = await submitTodo({ data });
-    
-    // Update the todo list with the new todo
-    setListTodo((prevTodos) => [...prevTodos, newTodo]);
-    
-    // Reset the form
-    form.reset();
-    
-    toast.success("Todo created successfully!", {
-      description: (
-        <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
-          <code>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-      position: "bottom-right",
-      classNames: {
-        content: "flex flex-col gap-2",
-      },
-      style: {
-        "--border-radius": "calc(var(--radius)  + 4px)",
-      } as React.CSSProperties,
-    });
+    if (mode === "edit" && editingTodo) {
+      // Update existing todo
+      const updatedTodo = await updateTodo({
+        data: { id: editingTodo.id, ...data },
+      });
+
+      // Update the todo list
+      setListTodo((prevTodos) =>
+        prevTodos.map((todo) =>
+          todo.id === editingTodo.id ? updatedTodo : todo
+        )
+      );
+
+      // Reset form and mode
+      form.reset();
+      onCancelEdit();
+
+      toast.success("Todo updated successfully!", {
+        description: (
+          <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
+            <code>{JSON.stringify(data, null, 2)}</code>
+          </pre>
+        ),
+        position: "bottom-right",
+        classNames: {
+          content: "flex flex-col gap-2",
+        },
+        style: {
+          "--border-radius": "calc(var(--radius)  + 4px)",
+        } as React.CSSProperties,
+      });
+    } else {
+      // Create new todo
+      const newTodo = await submitTodo({ data });
+
+      // Update the todo list with the new todo
+      setListTodo((prevTodos) => [...prevTodos, newTodo]);
+
+      // Reset the form
+      form.reset();
+
+      toast.success("Todo created successfully!", {
+        description: (
+          <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
+            <code>{JSON.stringify(data, null, 2)}</code>
+          </pre>
+        ),
+        position: "bottom-right",
+        classNames: {
+          content: "flex flex-col gap-2",
+        },
+        style: {
+          "--border-radius": "calc(var(--radius)  + 4px)",
+        } as React.CSSProperties,
+      });
+    }
   }
 
   return (
     <Card className="w-full sm:max-w-md">
-      <CardHeader>TODO Form</CardHeader>
+      <CardHeader>{mode === "edit" ? "Edit TODO" : "Create TODO"}</CardHeader>
       <CardContent>
         <form id="form-rhf-demo" onSubmit={form.handleSubmit(onSubmit)}>
           <FieldGroup>
@@ -220,6 +325,16 @@ export function TodoForm({ setListTodo }: { setListTodo: React.Dispatch<React.Se
             />
           </FieldGroup>
           <Field orientation="horizontal">
+            {mode === "edit" && (
+              <Button
+                className="hover:cursor-pointer"
+                type="button"
+                variant="outline"
+                onClick={onCancelEdit}
+              >
+                Cancel
+              </Button>
+            )}
             <Button
               className="hover:cursor-pointer"
               type="button"
@@ -233,7 +348,7 @@ export function TodoForm({ setListTodo }: { setListTodo: React.Dispatch<React.Se
               type="submit"
               form="form-rhf-demo"
             >
-              Submit
+              {mode === "edit" ? "Update" : "Submit"}
             </Button>
           </Field>
         </form>
