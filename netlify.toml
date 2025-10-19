@@ -1,0 +1,3 @@
+[build]
+  command = "prisma generate && vite build"
+  publish = "dist/client"
