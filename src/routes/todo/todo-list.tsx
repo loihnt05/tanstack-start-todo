@@ -40,7 +40,7 @@ export type todo = {
   completed: boolean;
 };
 
-export const createColumns = (onDelete: (id: string) => void): ColumnDef<todo>[] => [
+export const createColumns = (onDelete: (id: string) => void, onChecked: (id: string) => void): ColumnDef<todo>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -67,7 +67,7 @@ export const createColumns = (onDelete: (id: string) => void): ColumnDef<todo>[]
     accessorKey: "completed",
     header: "Status",
     cell: ({ row }) => (
-      <div className="capitalize">
+      <div className="capitalize hover:cursor-pointer" onClick={() => {onChecked(row.original.id)}}>
         {row.getValue("completed") ? "Done" : "Not Done"}
       </div>
     ),
@@ -110,7 +110,7 @@ export const createColumns = (onDelete: (id: string) => void): ColumnDef<todo>[]
   },
 ];
 
-export function TodoList({ data, onDelete }: { data: todo[]; onDelete: (id: string) => void }) {
+export function TodoList({ data, onDelete, onChecked }: { data: todo[]; onDelete: (id: string) => void; onChecked: (id: string) => void }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -119,7 +119,7 @@ export function TodoList({ data, onDelete }: { data: todo[]; onDelete: (id: stri
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const columns = React.useMemo(() => createColumns(onDelete), [onDelete]);
+  const columns = React.useMemo(() => createColumns(onDelete, onChecked), [onDelete, onChecked]);
 
   const table = useReactTable({
     data,

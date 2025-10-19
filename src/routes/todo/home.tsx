@@ -43,12 +43,22 @@ function RouteComponent() {
   const { todos } = Route.useLoaderData();
   const [listTodo, setListTodo] = React.useState(todos);
   const deleteTodo = useServerFn(deleteTodoServerFn);
-  
+  const editTodo = useServerFn(editTodoServerFn);
+
   const handleDeleteTodo = async (id: string) => {
     await deleteTodo({ data: { id } });
     setListTodo((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
     toast.success("Todo deleted successfully!");
   };
+
+  const handleCheckedTodo = async (id: string) => {
+    await editTodo({ data: { id } });
+    setListTodo((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -58,7 +68,7 @@ function RouteComponent() {
             <TodoForm setListTodo={setListTodo} />
           </div>
           <div className="flex-1">
-            <TodoList data={listTodo} onDelete={handleDeleteTodo} />
+            <TodoList data={listTodo} onDelete={handleDeleteTodo} onChecked={handleCheckedTodo}/>
           </div>
         </div>
       </div>
@@ -102,7 +112,17 @@ const deleteTodoServerFn = createServerFn({ method: "POST" })
       where: { id },
     });
   });
-
+const editTodoServerFn = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async (request) => {
+    const { id } = request.data;
+    const todo = await prisma.todo.findUnique({ where: { id } });
+    if (!todo) throw new Error("Todo not found");
+    return await prisma.todo.update({
+      where: { id },
+      data: { completed: !todo.completed },
+    });
+  });
 export function TodoForm({ setListTodo }: { setListTodo: React.Dispatch<React.SetStateAction<todo[]>> }) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
